@@ -1,0 +1,713 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>G's Weight Loss Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --card: #1c2128;
+    --border: #2d333b;
+    --accent: #00d4aa;
+    --accent2: #ff6b6b;
+    --accent3: #ffd166;
+    --text: #e6edf3;
+    --muted: #7d8590;
+    --success: #3fb950;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    padding: 20px;
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: 28px;
+    padding: 28px 20px 20px;
+    background: var(--surface);
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .header::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent), var(--accent3), var(--accent2));
+  }
+
+  .header h1 {
+    font-size: 1.5rem;
+    font-weight: 900;
+    letter-spacing: -0.5px;
+    color: var(--text);
+  }
+
+  .header h1 span { color: var(--accent); }
+
+  .header p {
+    color: var(--muted);
+    font-size: 0.8rem;
+    margin-top: 4px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .stat-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stat-card::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 2px;
+  }
+
+  .stat-card.green::after { background: var(--accent); }
+  .stat-card.red::after { background: var(--accent2); }
+  .stat-card.yellow::after { background: var(--accent3); }
+  .stat-card.blue::after { background: #79c0ff; }
+
+  .stat-label {
+    font-size: 0.65rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+
+  .stat-value {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.6rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .stat-value.green { color: var(--accent); }
+  .stat-value.red { color: var(--accent2); }
+  .stat-value.yellow { color: var(--accent3); }
+  .stat-value.blue { color: #79c0ff; }
+
+  .stat-sub {
+    font-size: 0.7rem;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+
+  .progress-section {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px;
+    margin-bottom: 16px;
+  }
+
+  .section-title {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--muted);
+    font-weight: 600;
+    margin-bottom: 14px;
+  }
+
+  .progress-bar-wrap {
+    background: var(--border);
+    border-radius: 999px;
+    height: 10px;
+    margin-bottom: 8px;
+    overflow: hidden;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--accent), var(--accent3));
+    transition: width 1s ease;
+  }
+
+  .progress-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.68rem;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .chart-section {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px;
+    margin-bottom: 16px;
+  }
+
+  canvas { max-height: 220px; }
+
+  .view-toggle {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 14px;
+  }
+
+  .toggle-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    border-radius: 6px;
+    padding: 5px 12px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+  }
+
+  .toggle-btn.active {
+    background: var(--accent);
+    color: #0d1117;
+    border-color: var(--accent);
+  }
+
+  .log-section {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px;
+    margin-bottom: 16px;
+  }
+
+  .log-input-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+
+  .log-input-row input {
+    flex: 1;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.9rem;
+    outline: none;
+  }
+
+  .log-input-row input:focus {
+    border-color: var(--accent);
+  }
+
+  .log-input-row input::placeholder { color: var(--muted); }
+
+  .btn {
+    background: var(--accent);
+    color: #0d1117;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 16px;
+    font-weight: 700;
+    font-size: 0.8rem;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    white-space: nowrap;
+  }
+
+  .btn:active { opacity: 0.8; }
+
+  .btn-danger {
+    background: transparent;
+    color: var(--accent2);
+    border: 1px solid var(--accent2);
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 0.65rem;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+  }
+
+  .log-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.78rem;
+  }
+
+  .log-table th {
+    text-align: left;
+    color: var(--muted);
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .log-table td {
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+
+  .log-table td:last-child { text-align: right; }
+
+  .change-positive { color: var(--accent); font-family: 'JetBrains Mono', monospace; }
+  .change-negative { color: var(--accent2); font-family: 'JetBrains Mono', monospace; }
+  .change-neutral { color: var(--muted); font-family: 'JetBrains Mono', monospace; }
+
+  .weight-val {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .tips-section {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px;
+    margin-bottom: 16px;
+  }
+
+  .tip-item {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    margin-bottom: 10px;
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+
+  .tip-item:last-child { margin-bottom: 0; }
+
+  .tip-icon {
+    font-size: 1rem;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .tip-item strong { color: var(--text); }
+
+  .empty-state {
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.78rem;
+    padding: 20px 0;
+  }
+
+  .week-badge {
+    display: inline-block;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 0.65rem;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .on-track { color: var(--success); font-size: 0.72rem; font-weight: 600; }
+  .off-track { color: var(--accent2); font-size: 0.72rem; font-weight: 600; }
+
+  .footer-note {
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.68rem;
+    margin-top: 8px;
+    font-family: 'JetBrains Mono', monospace;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>G's <span>Weight Loss</span> Dashboard</h1>
+  <p>Goal: 190 → 170 lbs &nbsp;|&nbsp; 90-Day Mission &nbsp;|&nbsp; Started: Jun 12, 2026</p>
+</div>
+
+<!-- Stats Grid -->
+<div class="stats-grid">
+  <div class="stat-card green">
+    <div class="stat-label">Current Weight</div>
+    <div class="stat-value green" id="currentWeight">190.0</div>
+    <div class="stat-sub">lbs — log today</div>
+  </div>
+  <div class="stat-card red">
+    <div class="stat-label">Lbs to Goal</div>
+    <div class="stat-value red" id="lbsToGo">20.0</div>
+    <div class="stat-sub">target: 170 lbs</div>
+  </div>
+  <div class="stat-card yellow">
+    <div class="stat-label">Lost So Far</div>
+    <div class="stat-value yellow" id="lostSoFar">0.0</div>
+    <div class="stat-sub">lbs dropped</div>
+  </div>
+  <div class="stat-card blue">
+    <div class="stat-label">Days Remaining</div>
+    <div class="stat-value blue" id="daysLeft">90</div>
+    <div class="stat-sub">deadline: Sep 10, 2026</div>
+  </div>
+</div>
+
+<!-- Progress Bar -->
+<div class="progress-section">
+  <div class="section-title">Overall Progress</div>
+  <div class="progress-bar-wrap">
+    <div class="progress-bar-fill" id="progressBar" style="width: 0%"></div>
+  </div>
+  <div class="progress-labels">
+    <span>Start: 190 lbs</span>
+    <span id="progressPct">0% complete</span>
+    <span>Goal: 170 lbs</span>
+  </div>
+  <div style="margin-top: 10px; font-size: 0.75rem; color: var(--muted);">
+    Pace needed: <strong style="color: var(--accent3);">1.6 lbs/week</strong> &nbsp;|&nbsp; 
+    Status: <span id="paceStatus" class="on-track">— log first weigh-in</span>
+  </div>
+</div>
+
+<!-- Chart -->
+<div class="chart-section">
+  <div class="section-title">Weight Trend</div>
+  <div class="view-toggle">
+    <button id="viewFull" class="toggle-btn active" onclick="setView('full')">Full Plan</button>
+    <button id="viewDaily" class="toggle-btn" onclick="setView('daily')">Daily Detail</button>
+  </div>
+  <canvas id="weightChart"></canvas>
+</div>
+
+<!-- Log Entry -->
+<div class="log-section">
+  <div class="section-title">Log Today's Weight</div>
+  <div class="log-input-row">
+    <input type="number" id="weightInput" placeholder="e.g. 188.5" step="0.1" min="100" max="400">
+    <button class="btn" onclick="logWeight()">Log It</button>
+  </div>
+
+  <table class="log-table">
+    <thead>
+      <tr>
+        <th>Date</th>
+        <th>Week</th>
+        <th>Weight</th>
+        <th>Change</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody id="logBody">
+      <tr>
+        <td colspan="5" class="empty-state">No entries yet — log your first weigh-in above 👆</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- Tips -->
+<div class="tips-section">
+  <div class="section-title">Daily Playbook</div>
+  <div class="tip-item">
+    <div class="tip-icon">🥩</div>
+    <div><strong>Protein first.</strong> 130–150g/day. Eggs, chicken, Greek yogurt, beef jerky. Keeps you full, protects muscle.</div>
+  </div>
+  <div class="tip-item">
+    <div class="tip-icon">💧</div>
+    <div><strong>Water before meals.</strong> 16 oz before each meal suppresses appetite naturally.</div>
+  </div>
+  <div class="tip-item">
+    <div class="tip-icon">🚶</div>
+    <div><strong>Walk 30 min daily.</strong> Even a parking lot loop counts. ~200 cal burn, adds up to 1.5 lbs/month.</div>
+  </div>
+  <div class="tip-item">
+    <div class="tip-icon">🛑</div>
+    <div><strong>No liquid calories.</strong> Sodas, sweet tea, energy drinks are your biggest enemy at work.</div>
+  </div>
+  <div class="tip-item">
+    <div class="tip-icon">😴</div>
+    <div><strong>Sleep 7–8 hrs.</strong> Sleep deprivation raises cortisol = more cravings = harder to lose fat.</div>
+  </div>
+</div>
+
+<div class="footer-note">Data stored in browser. Log every morning, same time, after bathroom. 📊</div>
+
+<script>
+  const START_WEIGHT = 190;
+  const GOAL_WEIGHT = 170;
+  const START_DATE = new Date('2026-06-12');
+  const END_DATE = new Date('2026-09-10');
+
+  let entries = JSON.parse(localStorage.getItem('g_weight_log') || '[]');
+
+  function saveEntries() {
+    localStorage.setItem('g_weight_log', JSON.stringify(entries));
+  }
+
+  function getWeekNumber(dateStr) {
+    const d = new Date(dateStr);
+    const diff = Math.floor((d - START_DATE) / (1000 * 60 * 60 * 24));
+    return Math.floor(diff / 7) + 1;
+  }
+
+  function formatDate(dateStr) {
+    const d = new Date(dateStr + 'T12:00:00');
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+
+  function logWeight() {
+    const val = parseFloat(document.getElementById('weightInput').value);
+    if (isNaN(val) || val < 100 || val > 400) {
+      alert('Please enter a valid weight (100–400 lbs)');
+      return;
+    }
+    const today = new Date().toISOString().split('T')[0];
+    const existing = entries.findIndex(e => e.date === today);
+    if (existing >= 0) {
+      if (!confirm('You already logged today. Update it?')) return;
+      entries[existing].weight = val;
+    } else {
+      entries.push({ date: today, weight: val });
+    }
+    entries.sort((a, b) => a.date.localeCompare(b.date));
+    saveEntries();
+    document.getElementById('weightInput').value = '';
+    render();
+  }
+
+  function deleteEntry(idx) {
+    if (!confirm('Delete this entry?')) return;
+    entries.splice(idx, 1);
+    saveEntries();
+    render();
+  }
+
+  function render() {
+    const latest = entries.length > 0 ? entries[entries.length - 1].weight : START_WEIGHT;
+    const lost = START_WEIGHT - latest;
+    const pct = Math.min(100, Math.max(0, (lost / 20) * 100));
+    const today = new Date();
+    const daysLeft = Math.max(0, Math.ceil((END_DATE - today) / (1000 * 60 * 60 * 24)));
+
+    document.getElementById('currentWeight').textContent = latest.toFixed(1);
+    document.getElementById('lbsToGo').textContent = Math.max(0, latest - GOAL_WEIGHT).toFixed(1);
+    document.getElementById('lostSoFar').textContent = Math.max(0, lost).toFixed(1);
+    document.getElementById('daysLeft').textContent = daysLeft;
+    document.getElementById('progressBar').style.width = pct + '%';
+    document.getElementById('progressPct').textContent = pct.toFixed(1) + '% complete';
+
+    // Pace status
+    const daysElapsed = Math.ceil((today - START_DATE) / (1000 * 60 * 60 * 24));
+    const expectedLoss = (daysElapsed / 90) * 20;
+    const paceEl = document.getElementById('paceStatus');
+    if (entries.length === 0) {
+      paceEl.textContent = '— log first weigh-in';
+      paceEl.className = 'on-track';
+    } else if (lost >= expectedLoss - 0.5) {
+      paceEl.textContent = '✅ On Track';
+      paceEl.className = 'on-track';
+    } else {
+      paceEl.textContent = '⚠️ Behind Pace — tighten up this week';
+      paceEl.className = 'off-track';
+    }
+
+    // Table
+    const tbody = document.getElementById('logBody');
+    if (entries.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No entries yet — log your first weigh-in above 👆</td></tr>';
+    } else {
+      const rows = [...entries].reverse().map((e, ri) => {
+        const realIdx = entries.length - 1 - ri;
+        const prev = entries[realIdx - 1];
+        const change = prev ? e.weight - prev.weight : 0;
+        const changeStr = prev
+          ? (change < 0 ? '▼ ' + Math.abs(change).toFixed(1) : change > 0 ? '▲ +' + change.toFixed(1) : '— 0.0')
+          : '—';
+        const cls = prev ? (change < 0 ? 'change-positive' : change > 0 ? 'change-negative' : 'change-neutral') : 'change-neutral';
+        const wk = getWeekNumber(e.date);
+        return `<tr>
+          <td>${formatDate(e.date)}</td>
+          <td><span class="week-badge">Wk ${wk}</span></td>
+          <td class="weight-val">${e.weight.toFixed(1)}</td>
+          <td class="${cls}">${changeStr}</td>
+          <td><button class="btn-danger" onclick="deleteEntry(${realIdx})">✕</button></td>
+        </tr>`;
+      }).join('');
+      tbody.innerHTML = rows;
+    }
+
+    updateChart();
+  }
+
+  let chartInstance = null;
+  let currentView = 'full';
+
+  function setView(v) {
+    currentView = v;
+    document.getElementById('viewFull').classList.toggle('active', v === 'full');
+    document.getElementById('viewDaily').classList.toggle('active', v === 'daily');
+    updateChart();
+  }
+
+  function targetAt(dayNum) {
+    return +(START_WEIGHT - (dayNum / 90) * 20).toFixed(1);
+  }
+
+  function dayOffset(dateStr) {
+    // Whole days between the entry date and the start date
+    const d = new Date(dateStr + 'T12:00:00');
+    const start = new Date(START_DATE.getTime());
+    start.setHours(12, 0, 0, 0);
+    return Math.round((d - start) / (1000 * 60 * 60 * 24));
+  }
+
+  function labelForDay(dayNum) {
+    const date = new Date(START_DATE.getTime());
+    date.setHours(12, 0, 0, 0);
+    date.setDate(date.getDate() + dayNum);
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+
+  function getViewRange() {
+    if (currentView === 'full' || entries.length === 0) {
+      return { xMin: 0, xMax: 90 };
+    }
+    // Daily detail: rolling window ending at the latest entry (~2 weeks wide)
+    const lastDay = dayOffset(entries[entries.length - 1].date);
+    const firstDay = dayOffset(entries[0].date);
+    const xMax = lastDay + 1;
+    const xMin = Math.max(0, Math.min(firstDay, lastDay - 13));
+    return { xMin, xMax };
+  }
+
+  function buildTargetLine(xMin, xMax) {
+    // A straight pace line is defined by its two endpoints
+    return [
+      { x: xMin, y: targetAt(xMin) },
+      { x: xMax, y: targetAt(xMax) }
+    ];
+  }
+
+  function computeYRange(xMin, xMax) {
+    const vals = [targetAt(xMin), targetAt(xMax)];
+    if (currentView === 'full') {
+      vals.push(START_WEIGHT, GOAL_WEIGHT);
+    }
+    entries.forEach(e => {
+      const d = dayOffset(e.date);
+      if (d >= xMin && d <= xMax) vals.push(e.weight);
+    });
+    let lo = Math.min(...vals) - 3;
+    let hi = Math.max(...vals) + 3;
+    // Snap to clean 5-lb gridlines so the axis reads nicely
+    lo = Math.floor(lo / 5) * 5;
+    hi = Math.ceil(hi / 5) * 5;
+    return { lo, hi };
+  }
+
+  function updateChart() {
+    const ctx = document.getElementById('weightChart').getContext('2d');
+
+    const { xMin, xMax } = getViewRange();
+    const target = buildTargetLine(xMin, xMax);
+    const actualData = entries.map(e => ({ x: dayOffset(e.date), y: e.weight }));
+    const { lo, hi } = computeYRange(xMin, xMax);
+
+    if (chartInstance) chartInstance.destroy();
+
+    chartInstance = new Chart(ctx, {
+      type: 'line',
+      data: {
+        datasets: [
+          {
+            label: 'Target Pace',
+            data: target,
+            borderColor: '#ffd166',
+            borderDash: [6, 4],
+            borderWidth: 2,
+            pointRadius: 0,
+            tension: 0,
+            fill: false
+          },
+          {
+            label: 'Your Weight',
+            data: actualData,
+            borderColor: '#00d4aa',
+            backgroundColor: 'rgba(0,212,170,0.1)',
+            borderWidth: 2.5,
+            pointRadius: 5,
+            pointBackgroundColor: '#00d4aa',
+            tension: 0.3,
+            fill: true
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: {
+            labels: { color: '#7d8590', font: { size: 11 }, boxWidth: 20 }
+          },
+          tooltip: {
+            backgroundColor: '#1c2128',
+            borderColor: '#2d333b',
+            borderWidth: 1,
+            titleColor: '#e6edf3',
+            bodyColor: '#7d8590',
+            callbacks: {
+              title: items => items.length ? labelForDay(items[0].parsed.x) : '',
+              label: ctx => ` ${ctx.parsed.y.toFixed(1)} lbs`
+            }
+          }
+        },
+        scales: {
+          x: {
+            type: 'linear',
+            min: xMin,
+            max: xMax,
+            ticks: {
+              color: '#7d8590',
+              font: { size: 10 },
+              maxTicksLimit: 6,
+              callback: v => labelForDay(v)
+            },
+            grid: { color: '#2d333b' }
+          },
+          y: {
+            min: lo,
+            max: hi,
+            ticks: { color: '#7d8590', font: { size: 10 }, callback: v => v + ' lb' },
+            grid: { color: '#2d333b' }
+          }
+        }
+      }
+    });
+  }
+
+  render();
+</script>
+</body>
+</html>
